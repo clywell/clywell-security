@@ -264,15 +264,103 @@ builder.Services.AddSecurity(options =>
 
 ## Security Headers
 
-`UseSecurityHeaders()` adds the following response headers and strips server-identifying headers:
+`UseSecurityHeaders()` adds OWASP-recommended response headers and strips server-identifying headers. Call it with no arguments to apply the defaults, or supply a configuration action to customise any aspect.
 
-| Header | Value |
-|--------|-------|
+### Default headers
+
+| Header | Default value |
+|--------|---------------|
 | `X-Content-Type-Options` | `nosniff` |
 | `X-Frame-Options` | `DENY` |
 | `Referrer-Policy` | `strict-origin-when-cross-origin` |
 | `Permissions-Policy` | Disables accelerometer, camera, geolocation, gyroscope, magnetometer, microphone, USB |
 | `Content-Security-Policy` | `default-src 'self'; frame-ancestors 'none'` |
+
+`Server` and `X-Powered-By` are removed from every response.
+
+### Default usage (no configuration needed)
+
+```csharp
+app.UseSecurityHeaders();
+```
+
+### Customising individual headers
+
+Pass an `Action<SecurityHeadersOptions>` to override any value. Set a property to `null` to suppress that header entirely.
+
+```csharp
+app.UseSecurityHeaders(options =>
+{
+    options.FrameOptions = "SAMEORIGIN"; // relax framing restriction
+    options.ReferrerPolicy = "no-referrer";
+    options.PermissionsPolicy = null;    // suppress the header
+});
+```
+
+### Configuring Content-Security-Policy
+
+Use the fluent `CspBuilder` or supply a raw string:
+
+```csharp
+app.UseSecurityHeaders(options =>
+{
+    options.WithContentSecurityPolicy(csp => csp
+        .Default("'self'")
+        .Script("'self'")
+        .Style("'self'")
+        .Image("'self'", "data:")
+        .Font("'self'")
+        .Connect("'self'")
+        .FrameAncestors("'none'"));
+});
+```
+
+### Route-specific CSP overrides
+
+Apps that serve a developer UI (e.g. Scalar API reference) at a specific path can register a per-route policy that overrides the global one only for requests under that prefix:
+
+```csharp
+app.UseSecurityHeaders(options =>
+{
+    // Scalar injects inline scripts/styles — allow them only on that route
+    options.AddRouteContentSecurityPolicy("/scalar", csp => csp
+        .Default("'self'")
+        .Script("'self'", "'unsafe-inline'")
+        .Style("'self'", "'unsafe-inline'")
+        .Image("'self'", "data:", "https:")
+        .Font("'self'", "data:")
+        .Connect("'self'")
+        .FrameAncestors("'none'"));
+});
+```
+
+### Development-only overrides
+
+Use `IWebHostEnvironment` at the call site to apply settings that should only apply in development:
+
+```csharp
+app.UseSecurityHeaders(options =>
+{
+    var connectSrc = app.Environment.IsDevelopment()
+        ? ["'self'", "ws://localhost:*", "wss://localhost:*"]   // allow browser-refresh WebSocket
+        : ["'self'"];
+
+    options.WithContentSecurityPolicy(csp => csp
+        .Default("'self'")
+        .Connect(connectSrc)
+        .FrameAncestors("'none'"));
+});
+```
+
+### Adding and removing custom headers
+
+```csharp
+app.UseSecurityHeaders(options =>
+{
+    options.AddHeader("X-App-Version", "2.1.0");   // add a custom header
+    options.RemoveHeader("X-AspNet-Version");       // strip an additional header
+});
+```
 
 ---
 
@@ -305,6 +393,40 @@ builder.Services.AddSecurity(options =>
 ### `ICurrentUser`
 
 Scoped service available after `UseUserContext()` runs in the pipeline. See the [Current User](#current-user) section for the full member table.
+
+### `SecurityHeadersOptions`
+
+Configure via `app.UseSecurityHeaders(options => { ... })`.
+
+| Member | Description |
+|--------|-------------|
+| `ContentTypeOptions` | `X-Content-Type-Options` value; `null` suppresses the header (default: `nosniff`) |
+| `FrameOptions` | `X-Frame-Options` value; `null` suppresses (default: `DENY`) |
+| `ReferrerPolicy` | `Referrer-Policy` value; `null` suppresses (default: `strict-origin-when-cross-origin`) |
+| `PermissionsPolicy` | `Permissions-Policy` value; `null` suppresses |
+| `WithContentSecurityPolicy(string?)` | Set a raw CSP string, or `null` to suppress |
+| `WithContentSecurityPolicy(Action<CspBuilder>)` | Build a CSP using the fluent builder |
+| `AddRouteContentSecurityPolicy(string, string)` | Override CSP for requests under a path prefix |
+| `AddRouteContentSecurityPolicy(string, Action<CspBuilder>)` | Same, using the builder |
+| `AddHeader(name, value)` | Inject an additional response header |
+| `RemoveHeader(name)` | Remove a response header (in addition to `Server` / `X-Powered-By`) |
+
+### `CspBuilder`
+
+| Method | CSP directive |
+|--------|---------------|
+| `Default(sources)` | `default-src` |
+| `Script(sources)` | `script-src` |
+| `Style(sources)` | `style-src` |
+| `Image(sources)` | `img-src` |
+| `Font(sources)` | `font-src` |
+| `Connect(sources)` | `connect-src` |
+| `FrameAncestors(sources)` | `frame-ancestors` |
+| `Media(sources)` | `media-src` |
+| `Object(sources)` | `object-src` |
+| `Worker(sources)` | `worker-src` |
+| `FormAction(sources)` | `form-action` |
+| `Build()` | Returns the assembled CSP string |
 
 ### `UserInfo`
 

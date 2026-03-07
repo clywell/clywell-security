@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-07
+
+### Added
+
+#### Security Headers
+- `SecurityHeadersOptions` — configuration model for `SecurityHeadersMiddleware` with sensible OWASP defaults; exposes `ContentTypeOptions`, `FrameOptions`, `ReferrerPolicy`, `PermissionsPolicy` as settable strings (set to `null` to suppress a header)
+- `CspBuilder` — fluent builder for `Content-Security-Policy` values; supports `Default`, `Script`, `Style`, `Image`, `Font`, `Connect`, `FrameAncestors`, `Media`, `Object`, `Worker`, `FormAction` directives
+- `SecurityHeadersOptions.WithContentSecurityPolicy(string?)` — set a raw CSP string
+- `SecurityHeadersOptions.WithContentSecurityPolicy(Action<CspBuilder>)` — configure CSP fluently
+- `SecurityHeadersOptions.AddRouteContentSecurityPolicy(string, string)` / `AddRouteContentSecurityPolicy(string, Action<CspBuilder>)` — register path-prefix-scoped CSP overrides (first matching prefix wins)
+- `SecurityHeadersOptions.AddHeader(name, value)` — inject arbitrary response headers
+- `SecurityHeadersOptions.RemoveHeader(name)` — strip additional response headers beyond `Server` / `X-Powered-By`
+- `UseSecurityHeaders(Action<SecurityHeadersOptions>?)` overload — optional configuration action; calling with no arguments preserves the existing default behaviour
+
+### Changed
+- `UseSecurityHeaders()` — now accepts an optional `Action<SecurityHeadersOptions>` parameter; existing zero-argument call sites continue to work without modification
+
+### Removed
+- `SecurityHeadersMiddleware` no longer takes `IWebHostEnvironment` as a constructor parameter
+
 ## [1.0.0] - 2025-07-13
 
 ### Added

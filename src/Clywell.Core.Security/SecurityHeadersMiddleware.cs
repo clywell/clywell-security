@@ -1,20 +1,48 @@
 namespace Clywell.Core.Security;
 
-public sealed class SecurityHeadersMiddleware(RequestDelegate next)
+/// <summary>
+/// Middleware that applies configurable security response headers to every request.
+/// Register with <c>app.UseSecurityHeaders(...)</c>.
+/// </summary>
+public sealed class SecurityHeadersMiddleware(RequestDelegate next, SecurityHeadersOptions options)
 {
     public Task InvokeAsync(HttpContext context)
     {
         var headers = context.Response.Headers;
 
-        headers["X-Content-Type-Options"] = "nosniff";
-        headers["X-Frame-Options"] = "DENY";
-        headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-        headers["Permissions-Policy"] = "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), usb=()";
-        headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'";
+        if (options.ContentTypeOptions is not null)
+            headers["X-Content-Type-Options"] = options.ContentTypeOptions;
 
-        headers.Remove("Server");
-        headers.Remove("X-Powered-By");
+        if (options.FrameOptions is not null)
+            headers["X-Frame-Options"] = options.FrameOptions;
+
+        if (options.ReferrerPolicy is not null)
+            headers["Referrer-Policy"] = options.ReferrerPolicy;
+
+        if (options.PermissionsPolicy is not null)
+            headers["Permissions-Policy"] = options.PermissionsPolicy;
+
+        var csp = ResolveCsp(context.Request.Path);
+        if (csp is not null)
+            headers["Content-Security-Policy"] = csp;
+
+        foreach (var (name, value) in options.CustomHeaders)
+            headers[name] = value;
+
+        foreach (var name in options.HeadersToRemove)
+            headers.Remove(name);
 
         return next(context);
+    }
+
+    private string? ResolveCsp(PathString requestPath)
+    {
+        foreach (var (prefix, policy) in options.RoutePolicies)
+        {
+            if (requestPath.StartsWithSegments(prefix, StringComparison.OrdinalIgnoreCase))
+                return policy;
+        }
+
+        return options.ContentSecurityPolicy;
     }
 }
