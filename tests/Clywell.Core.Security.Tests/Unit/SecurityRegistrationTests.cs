@@ -168,6 +168,29 @@ public class SecurityRegistrationTests
         Assert.Equal("https://auth.example.com", tvp.ValidIssuer);
     }
 
+    [Fact]
+    public void AddSecurity_WithSigningKey_SetsIssuerSigningKeyAndValidIssuer()
+    {
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var key = new RsaSecurityKey(rsa);
+
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        services.AddSecurity(options =>
+            options.AddJwtBearer()
+                .WithSigningKey(key, issuer: "https://auth.example.com", audience: "api"));
+
+        var jwtOptions = services.BuildServiceProvider()
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme);
+        var tvp = jwtOptions.TokenValidationParameters;
+
+        Assert.Same(key, tvp.IssuerSigningKey);
+        Assert.Equal("https://auth.example.com", tvp.ValidIssuer);
+        Assert.Equal("api", jwtOptions.Audience);
+    }
+
     private sealed class StubUserContextResolver : IUserContextResolver
     {
         public Task<UserInfo?> ResolveAsync(HttpContext context) => Task.FromResult<UserInfo?>(null);

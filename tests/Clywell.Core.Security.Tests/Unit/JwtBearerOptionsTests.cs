@@ -177,4 +177,80 @@ public class JwtBearerOptionsTests
 
         Assert.Equal("query.jwt.token", ctx.Token);
     }
+
+    // -------------------------------------------------------------------------
+    // RSA / asymmetric signing key (WithSigningKey)
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void WithSigningKey_SetsIssuerSigningKey()
+    {
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var key = new RsaSecurityKey(rsa);
+
+        var options = BuildJwtOptions(b => b.WithSigningKey(key, "test-issuer"));
+
+        Assert.Same(key, options.TokenValidationParameters.IssuerSigningKey);
+    }
+
+    [Fact]
+    public void WithSigningKey_SetsValidIssuer()
+    {
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var key = new RsaSecurityKey(rsa);
+
+        var options = BuildJwtOptions(b => b.WithSigningKey(key, "test-issuer"));
+
+        Assert.Equal("test-issuer", options.TokenValidationParameters.ValidIssuer);
+    }
+
+    [Fact]
+    public void WithSigningKey_WithAudience_SetsAudience()
+    {
+        using var rsa = System.Security.Cryptography.RSA.Create(2048);
+        var key = new RsaSecurityKey(rsa);
+
+        var options = BuildJwtOptions(b => b.WithSigningKey(key, "test-issuer", audience: "my-api"));
+
+        Assert.Equal("my-api", options.Audience);
+    }
+
+    // -------------------------------------------------------------------------
+    // Claim mapping sync - NameClaimType and RoleClaimType
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void DefaultClaimMapping_NameClaimType_IsSub()
+    {
+        var options = BuildJwtOptions(b => b.WithOidcProvider("https://auth.example.com"));
+
+        Assert.Equal("sub", options.TokenValidationParameters.NameClaimType);
+    }
+
+    [Fact]
+    public void DefaultClaimMapping_RoleClaimType_IsRole()
+    {
+        var options = BuildJwtOptions(b => b.WithOidcProvider("https://auth.example.com"));
+
+        Assert.Equal("role", options.TokenValidationParameters.RoleClaimType);
+    }
+
+    [Fact]
+    public void CustomRoleMapping_RoleClaimType_ReflectsCustomValue()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSecurity(options =>
+        {
+            options.AddJwtBearer().WithOidcProvider("https://auth.example.com");
+            options.ConfigureClaimMapping(m => m.Roles = "roles");
+        });
+
+        var tvp = services.BuildServiceProvider()
+            .GetRequiredService<IOptionsMonitor<JwtBearerOptions>>()
+            .Get(JwtBearerDefaults.AuthenticationScheme)
+            .TokenValidationParameters;
+
+        Assert.Equal("roles", tvp.RoleClaimType);
+    }
 }

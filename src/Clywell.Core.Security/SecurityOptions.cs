@@ -45,6 +45,6 @@ public sealed class SecurityOptions
         else
             services.TryAddScoped<IUserContextResolver, ClaimsUserContextResolver>();
 
-        _jwtBuilder?.Apply(services);
+        _jwtBuilder?.Apply(services, _claimMapping);
     }
 }

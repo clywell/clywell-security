@@ -11,6 +11,7 @@ public sealed class JwtBearerBuilder
 {
     private string? _authority;
     private string? _signingKey;
+    private SecurityKey? _securityKey;
     private string? _issuer;
     private string? _audience;
     private bool _requireHttpsMetadata = true;
@@ -58,6 +59,23 @@ public sealed class JwtBearerBuilder
                 "SigningKey must be at least 32 characters for adequate security.", nameof(signingKey));
 
         _signingKey = signingKey;
+        _issuer = issuer;
+        if (audience is not null) _audience = audience;
+        return this;
+    }
+
+    /// <summary>
+    /// Validate JWTs signed with a pre-built <see cref="SecurityKey"/> - use this for self-hosted
+    /// JWT issuers using asymmetric keys (RSA, ECDSA) where you supply the public key directly.
+    /// </summary>
+    /// <param name="signingKey">The public key used to verify token signatures (e.g. <see cref="RsaSecurityKey"/>).</param>
+    /// <param name="issuer">The issuer value your service embeds in issued tokens.</param>
+    /// <param name="audience">Expected audience claim. Pass <c>null</c> to skip audience validation.</param>
+    public JwtBearerBuilder WithSigningKey(SecurityKey signingKey, string issuer, string? audience = null)
+    {
+        ArgumentNullException.ThrowIfNull(signingKey);
+        ArgumentException.ThrowIfNullOrWhiteSpace(issuer);
+        _securityKey = signingKey;
         _issuer = issuer;
         if (audience is not null) _audience = audience;
         return this;
@@ -144,14 +162,15 @@ public sealed class JwtBearerBuilder
     // Internal
     // -------------------------------------------------------------------------
 
-    internal void Apply(IServiceCollection services)
+    internal void Apply(IServiceCollection services, UserClaimMapping claimMapping)
     {
-        if (string.IsNullOrEmpty(_authority) && string.IsNullOrEmpty(_signingKey))
+        if (string.IsNullOrEmpty(_authority) && string.IsNullOrEmpty(_signingKey) && _securityKey is null)
             throw new InvalidOperationException(
-                "Call WithOidcProvider() or WithSymmetricKey() to configure JWT bearer authentication.");
+                "Call WithOidcProvider(), WithSymmetricKey(), or WithSigningKey() to configure JWT bearer authentication.");
 
         var authority = _authority;
         var signingKey = _signingKey;
+        var securityKey = _securityKey;
         var issuer = _issuer;
         var audience = _audience;
         var requireHttps = _requireHttpsMetadata;
@@ -175,8 +194,12 @@ public sealed class JwtBearerBuilder
                 options.TokenValidationParameters.ValidateAudience = validateAudience;
                 options.TokenValidationParameters.ValidateLifetime = validateLifetime;
                 options.TokenValidationParameters.ClockSkew = clockSkew;
+                options.TokenValidationParameters.NameClaimType = claimMapping.UserId;
+                options.TokenValidationParameters.RoleClaimType = claimMapping.Roles;
 
-                if (!string.IsNullOrEmpty(signingKey))
+                if (securityKey is not null)
+                    options.TokenValidationParameters.IssuerSigningKey = securityKey;
+                else if (!string.IsNullOrEmpty(signingKey))
                     options.TokenValidationParameters.IssuerSigningKey =
                         new SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(signingKey));
 

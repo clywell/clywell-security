@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-09
+
+### Added
+
+- `JwtBearerBuilder.WithSigningKey(SecurityKey, issuer, audience?)` — validates self-hosted JWTs signed with any pre-built `SecurityKey` (RSA, ECDSA, etc.); pass the public key derived from your signing key pair. Recommended for production asymmetric JWT issuers.
+
+### Changed
+
+- `JwtBearerBuilder` now automatically sets `TokenValidationParameters.NameClaimType` and `RoleClaimType` from the registered `UserClaimMapping`, ensuring that `ICurrentUser.Roles`, `ClaimsIdentity.RoleClaimType`, and role-based policy checks (`RequireRole`) all use the same claim type as the rest of the security package.
+
 ## [1.1.0] - 2026-03-07
 
 ### Added

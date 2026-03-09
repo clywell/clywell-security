@@ -17,6 +17,7 @@ dotnet add package Clywell.Core.Security
 - [JWT Authentication](#jwt-authentication)
   - [OIDC / External Identity Provider](#oidc--external-identity-provider)
   - [Self-Hosted JWT (Symmetric Key)](#self-hosted-jwt-symmetric-key)
+    - [Self-Hosted JWT (Asymmetric Key / RSA)](#self-hosted-jwt-asymmetric-key--rsa)
   - [Token from Cookie or Query String](#token-from-cookie-or-query-string)
 - [Current User](#current-user)
 - [Permission-Based Authorization](#permission-based-authorization)
@@ -107,6 +108,26 @@ options.AddJwtBearer()
            signingKey: builder.Configuration["Jwt:SigningKey"], // min 32 chars
            issuer:     "https://my-service.example.com",
            audience:   "my-api");
+```
+
+### Self-Hosted JWT (Asymmetric Key / RSA)
+
+Use `WithSigningKey` when your own service issues JWTs signed with an asymmetric key (RSA, ECDSA). Pass the **public** `SecurityKey` derived from your signing key pair. This is the recommended approach for production JWT issuers.
+
+> **Security:** Never include the private key in token validation. Extract only the public parameters before registering — see the example below.
+
+```csharp
+// Load the RSA private key from configuration (secret manager / env var - never hard-code)
+using var rsa = RSA.Create();
+rsa.ImportFromPem(configuration["Jwt:RsaPrivateKey"]);
+var publicKey = new RsaSecurityKey(RSA.Create(rsa.ExportParameters(includePrivateParameters: false)));
+
+builder.Services.AddSecurity(options =>
+{
+    options.AddJwtBearer()
+           .WithSigningKey(publicKey, issuer: "https://my-service.example.com")
+           .DisableAudienceValidation();  // omit if you set an audience
+});
 ```
 
 ### Token from Cookie or Query String
@@ -381,6 +402,7 @@ app.UseSecurityHeaders(options =>
 |--------|-------------|
 | `WithOidcProvider(authority, audience?)` | Validate tokens from an external OIDC provider |
 | `WithSymmetricKey(signingKey, issuer, audience?)` | Validate locally-issued tokens with a symmetric key |
+| `WithSigningKey(signingKey, issuer, audience?)` | Validate tokens signed with a pre-built `SecurityKey` (RSA, ECDSA, etc.). Pass the public key for asymmetric schemes. |
 | `WithTokenCookie(cookieName)` | Read bearer token from an `HttpOnly` cookie (SignalR / SSE) |
 | `WithTokenQueryParam(parameterName)` | Fallback: read bearer token from a query string parameter |
 | `DisableHttpsMetadataRequirement()` | Allow HTTP for OIDC discovery. **Never in production.** |
