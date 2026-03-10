@@ -12,6 +12,9 @@ public sealed class JwtBearerBuilder
     private string? _authority;
     private string? _signingKey;
     private SecurityKey? _securityKey;
+    private Func<IServiceProvider, SecurityKey>? _signingKeyFactory;
+    private Func<IServiceProvider, string>? _issuerFactory;
+    private Func<IServiceProvider, string>? _audienceFactory;
     private string? _issuer;
     private string? _audience;
     private bool _requireHttpsMetadata = true;
@@ -78,6 +81,33 @@ public sealed class JwtBearerBuilder
         _securityKey = signingKey;
         _issuer = issuer;
         if (audience is not null) _audience = audience;
+        return this;
+    }
+
+    /// <summary>
+    /// Validate JWTs signed with a key that is resolved lazily at options-resolution time via a factory.
+    /// The <paramref name="keyFactory"/> receives the application's <see cref="IServiceProvider"/>
+    /// and must return the <see cref="SecurityKey"/> used to verify token signatures.
+    /// The <paramref name="issuerFactory"/> resolves the expected issuer value in the same way.
+    /// <para>
+    /// Use this overload when the key or issuer is not available at service-registration time -
+    /// for example, when the value comes from configuration that may be overridden by
+    /// <c>WebApplicationFactory</c> in integration tests, or from a key vault loaded asynchronously.
+    /// </para>
+    /// </summary>
+    /// <param name="keyFactory">Factory that produces the signing key. Resolved once from the root <see cref="IServiceProvider"/>.</param>
+    /// <param name="issuerFactory">Factory that produces the expected token issuer.</param>
+    /// <param name="audienceFactory">Optional factory that produces the expected audience. Omit to skip audience validation.</param>
+    public JwtBearerBuilder WithSigningKey(
+        Func<IServiceProvider, SecurityKey> keyFactory,
+        Func<IServiceProvider, string> issuerFactory,
+        Func<IServiceProvider, string>? audienceFactory = null)
+    {
+        ArgumentNullException.ThrowIfNull(keyFactory);
+        ArgumentNullException.ThrowIfNull(issuerFactory);
+        _signingKeyFactory = keyFactory;
+        _issuerFactory = issuerFactory;
+        _audienceFactory = audienceFactory;
         return this;
     }
 
@@ -164,7 +194,7 @@ public sealed class JwtBearerBuilder
 
     internal void Apply(IServiceCollection services, UserClaimMapping claimMapping)
     {
-        if (string.IsNullOrEmpty(_authority) && string.IsNullOrEmpty(_signingKey) && _securityKey is null)
+        if (string.IsNullOrEmpty(_authority) && string.IsNullOrEmpty(_signingKey) && _securityKey is null && _signingKeyFactory is null)
             throw new InvalidOperationException(
                 "Call WithOidcProvider(), WithSymmetricKey(), or WithSigningKey() to configure JWT bearer authentication.");
 
@@ -233,5 +263,25 @@ public sealed class JwtBearerBuilder
                     };
                 }
             });
+
+        // Factory-based key loading — runs at options-resolution time (after host build),
+        // ensuring WebApplicationFactory test overrides from ConfigureWebHost are respected.
+        // The consumer owns how the key and issuer are obtained (configuration, secrets, vault, etc.).
+        if (_signingKeyFactory is not null)
+        {
+            var keyFactory = _signingKeyFactory;
+            var issuerFactory = _issuerFactory!;
+            var audienceFactory = _audienceFactory;
+
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IServiceProvider>((opts, sp) =>
+                {
+                    opts.TokenValidationParameters.IssuerSigningKey = keyFactory(sp);
+                    opts.TokenValidationParameters.ValidIssuer = issuerFactory(sp);
+
+                    if (validateAudience && audienceFactory is not null)
+                        opts.TokenValidationParameters.ValidAudience = audienceFactory(sp);
+                });
+        }
     }
 }

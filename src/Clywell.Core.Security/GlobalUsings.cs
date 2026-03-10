@@ -1,9 +1,11 @@
 global using System.Security.Claims;
+global using System.Security.Cryptography;
 global using System.Text;
 global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.IdentityModel.Tokens;
 global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Http;
+global using Microsoft.Extensions.Configuration;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.DependencyInjection.Extensions;
 global using Microsoft.Extensions.Options;

@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.3.0] - 2026-03-10
+
+### Added
+
+#### `Clywell.Core.Security`
+- `JwtBearerBuilder.WithSigningKey(Func<IServiceProvider, SecurityKey> keyFactory, Func<IServiceProvider, string> issuerFactory, Func<IServiceProvider, string>? audienceFactory = null)` — factory overload of `WithSigningKey`; resolves the signing key and issuer lazily at options-resolution time via delegates that receive the application's `IServiceProvider`; use this when the key or issuer is unavailable at service-registration time (e.g. configuration overridden by `WebApplicationFactory` in integration tests, or keys loaded from a vault asynchronously)
+
 ## [1.2.0] - 2026-03-09
 
 ### Added
@@ -34,7 +43,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 ### Removed
 - `SecurityHeadersMiddleware` no longer takes `IWebHostEnvironment` as a constructor parameter
 
-## [1.0.0] - 2025-07-13
+## [1.0.0] - 2026-03-03
 
 ### Added
 
@@ -77,3 +86,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 #### DI & Pipeline Helpers
 - `ServiceCollectionExtensions.AddSecurity()` — single entry point for all DI registrations
 - `ApplicationBuilderExtensions.UseUserContext()` / `UseSecurityHeaders()` — middleware pipeline extension methods
+
+[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/clywell/clywell-security/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/clywell/clywell-security/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/clywell/clywell-security/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/clywell/clywell-security/releases/tag/v1.0.0
