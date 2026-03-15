@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-03-15
+
+### Added
+
+#### `Clywell.Core.Security`
+- `PermissionDefinition` — readonly record struct that represents a permission with `Code`, `Name`, `Description`, and `Category` properties; includes an implicit conversion to `string` (returns `Code`) for backward compatibility with APIs that accept raw permission code strings
+
 ## [1.3.1] - 2026-03-15
 
 ### Changed
