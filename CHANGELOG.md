@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-03-15
+
+### Changed
+- updated `Microsoft.AspNetCore.Authentication.JwtBearer` to `10.0.5` (from `10.0.4`)
+- updated `Microsoft.AspNetCore.TestHost` to `10.0.5` (from `10.0.3`)
+
 ## [1.3.0] - 2026-03-10
 
 ### Added
@@ -87,7 +93,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 - `ServiceCollectionExtensions.AddSecurity()` — single entry point for all DI registrations
 - `ApplicationBuilderExtensions.UseUserContext()` / `UseSecurityHeaders()` — middleware pipeline extension methods
 
-[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/clywell/clywell-security/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/clywell/clywell-security/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/clywell/clywell-security/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/clywell/clywell-security/compare/v1.0.0...v1.1.0
