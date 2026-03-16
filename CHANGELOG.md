@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-03-16
+
+### Added
+
+#### `Clywell.Core.Security`
+- `EndpointConventionBuilderExtensions.RequirePermission<TBuilder>(string permissionCode)` — minimal API extension method that calls `.RequireAuthorization("Permission:<permissionCode>")` using the existing `PermissionPolicyProvider` dynamic policy resolution; eliminates boilerplate string concatenation at call sites
+
+### Removed
+
+#### `Clywell.Core.Security`
+- `PermissionDefinition` — removed from this package; consumers that need a structured permission type should define it in their own domain layer to avoid pulling the security package into the application/domain tier
+
 ## [1.4.0] - 2026-03-15
 
 ### Added
@@ -100,7 +112,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 - `ServiceCollectionExtensions.AddSecurity()` — single entry point for all DI registrations
 - `ApplicationBuilderExtensions.UseUserContext()` / `UseSecurityHeaders()` — middleware pipeline extension methods
 
-[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/clywell/clywell-security/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/clywell/clywell-security/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/clywell/clywell-security/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/clywell/clywell-security/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/clywell/clywell-security/compare/v1.1.0...v1.2.0
