@@ -161,4 +161,42 @@ public class ClaimsUserContextResolverTests
         Assert.Equal(2, result.Permissions!.Count);
         Assert.Contains("articles:read", result.Permissions);
     }
+
+    [Fact]
+    public async Task ResolveAsync_SetsAcrFromClaim()
+    {
+        var context = CreateAuthenticatedContext(
+            new Claim("sub", "user-1"),
+            new Claim("acr", "step-up"));
+
+        var result = await _resolver.ResolveAsync(context);
+
+        Assert.NotNull(result);
+        Assert.Equal("step-up", result.Acr);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_SetsOperationContextFromClaim()
+    {
+        var context = CreateAuthenticatedContext(
+            new Claim("sub", "user-1"),
+            new Claim("operation_context", "approve_payment"));
+
+        var result = await _resolver.ResolveAsync(context);
+
+        Assert.NotNull(result);
+        Assert.Equal("approve_payment", result.OperationContext);
+    }
+
+    [Fact]
+    public async Task ResolveAsync_AcrAndOperationContext_AreNullWhenClaimsAbsent()
+    {
+        var context = CreateAuthenticatedContext(new Claim("sub", "user-1"));
+
+        var result = await _resolver.ResolveAsync(context);
+
+        Assert.NotNull(result);
+        Assert.Null(result.Acr);
+        Assert.Null(result.OperationContext);
+    }
 }

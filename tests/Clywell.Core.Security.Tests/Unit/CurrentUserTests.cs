@@ -179,4 +179,31 @@ public class CurrentUserTests
         Assert.Equal("10.0.0.1", user.IpAddress);
         Assert.False(user.IsAuthenticated);
     }
+
+    [Fact]
+    public void SetUser_WithAcrAndOperationContext_ExposesValues()
+    {
+        var user = new CurrentUser();
+        var info = new UserInfo(
+            UserId: "user-1",
+            Acr: "step-up",
+            OperationContext: "delete_account");
+
+        user.SetUser(info, null);
+
+        Assert.Equal("step-up", user.Acr);
+        Assert.Equal("delete_account", user.OperationContext);
+    }
+
+    [Fact]
+    public void SetUser_WithoutAcrAndOperationContext_ReturnsNull()
+    {
+        var user = new CurrentUser();
+        var info = new UserInfo("user-1");
+
+        user.SetUser(info, null);
+
+        Assert.Null(user.Acr);
+        Assert.Null(user.OperationContext);
+    }
 }

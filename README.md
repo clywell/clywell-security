@@ -21,6 +21,7 @@ dotnet add package Clywell.Core.Security
   - [Token from Cookie or Query String](#token-from-cookie-or-query-string)
 - [Current User](#current-user)
 - [Permission-Based Authorization](#permission-based-authorization)
+- [Step-Up Authentication](#step-up-authentication)
 - [Custom User Context Resolver](#custom-user-context-resolver)
   - [Type-Parameter Registration](#type-parameter-registration)
   - [Factory Registration](#factory-registration)
@@ -154,6 +155,8 @@ options.AddJwtBearer()
 | `UserId` | `string?` | Primary subject identifier (`sub` claim by default) |
 | `Email` | `string?` | User email address |
 | `DisplayName` | `string?` | Display / full name |
+| `Acr` | `string?` | Authentication Context Class Reference; `"step-up"` for step-up tokens (see `AcrValues`) |
+| `OperationContext` | `string?` | Operation context from step-up proof tokens; identifies the sensitive operation |
 | `IsAuthenticated` | `bool` | `true` when a valid identity was resolved |
 | `IpAddress` | `string?` | Remote IP from `HttpContext.Connection` |
 | `Roles` | `IReadOnlySet<string>` | Case-insensitive role set |
@@ -198,6 +201,62 @@ public IActionResult DeleteArticle(int id) { ... }
 ```
 
 Policies are resolved dynamically by `PermissionPolicyProvider` — no manual policy registration required.
+
+---
+
+## Step-Up Authentication
+
+Step-up authentication is a re-authentication event: the user proves their identity again for a specific sensitive operation without replacing their existing session token.
+
+Calls continue to send the normal `Authorization: Bearer ...` header. The step-up proof is sent separately in `X-Step-Up-Proof`.
+
+### Static step-up (endpoint-declared)
+
+Use `RequireStepUp()` on minimal API endpoints that always require elevated assurance:
+
+```csharp
+app.MapDelete("/account", DeleteAccountHandler)
+   .RequireStepUp("delete_account");
+```
+
+The caller must send a valid proof token (issued by the IAM service's step-up verify endpoint) in `X-Step-Up-Proof`.
+
+`operationContext` is optional, but recommended. It scopes the proof token to exactly this operation and helps prevent replay against other step-up endpoints.
+
+### Dynamic step-up (handler-determined)
+
+Inject `IStepUpProofValidator` into command handlers or services when step-up depends on runtime conditions:
+
+```csharp
+public class TransferFundsHandler(IStepUpProofValidator stepUpValidator)
+{
+    public Result Handle(TransferFundsCommand command)
+    {
+        if (command.Amount > 10_000)
+        {
+            var proof = stepUpValidator.Validate("high_value_transfer");
+            if (proof != StepUpProofValidationResult.Valid)
+                return Result.Failure("Step-up required for high-value transfers.");
+        }
+
+        // ... proceed
+    }
+}
+```
+
+### `StepUpProofValidationResult`
+
+| Value | Meaning |
+|-------|---------|
+| `Valid` | Proof token is valid, has `acr=step-up`, and required operation context (if any) matches |
+| `Missing` | `X-Step-Up-Proof` header is missing |
+| `Invalid` | Token is malformed, failed validation, or is not a step-up token |
+| `ContextMismatch` | Token `operation_context` does not match the required value |
+| `Expired` | Proof token is expired |
+
+### Header constant
+
+Use `SecurityHeaderNames.StepUpProof` (`"X-Step-Up-Proof"`) when constructing client requests instead of hardcoding the header name.
 
 ---
 
@@ -459,7 +518,9 @@ public sealed record UserInfo(
     string? DisplayName = null,
     IReadOnlySet<string>? Roles = null,
     IReadOnlySet<string>? Permissions = null,
-    ImmutableDictionary<string, object>? Properties = null);
+    ImmutableDictionary<string, object>? Properties = null,
+    string? Acr = null,
+    string? OperationContext = null);
 ```
 
 Returned by `IUserContextResolver.ResolveAsync()` to describe the resolved identity for the current request.
@@ -474,6 +535,28 @@ SecurityClaimTypes.Email      // "email"
 SecurityClaimTypes.Name       // "name"
 SecurityClaimTypes.Role       // "role"
 SecurityClaimTypes.Permission // "permission"
+SecurityClaimTypes.Acr        // "acr"
+SecurityClaimTypes.OperationContext // "operation_context"
+```
+
+### `AcrValues`
+
+Well-known Authentication Context Class Reference (`acr`) values:
+
+```csharp
+AcrValues.Password // "pwd"
+AcrValues.Mfa      // "mfa"
+AcrValues.StepUp   // "step-up"
+AcrValues.Social   // "social"
+AcrValues.ApiKey   // "api_key"
+```
+
+### `SecurityHeaderNames`
+
+Header name constants used by the security infrastructure:
+
+```csharp
+SecurityHeaderNames.StepUpProof // "X-Step-Up-Proof"
 ```
 
 ---

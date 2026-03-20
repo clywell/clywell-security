@@ -14,8 +14,10 @@ public static class ServiceCollectionExtensions
         services.AddAuthorizationCore();
         services.TryAddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
         services.TryAddEnumerable(ServiceDescriptor.Scoped<IAuthorizationHandler, PermissionAuthorizationHandler>());
+        services.TryAddEnumerable(ServiceDescriptor.Scoped<IAuthorizationHandler, StepUpAuthorizationHandler>());
+        services.TryAddScoped<IStepUpProofValidator, StepUpProofValidator>();
 
-        services.AddHttpContextAccessor();
+        services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
         return services;
     }

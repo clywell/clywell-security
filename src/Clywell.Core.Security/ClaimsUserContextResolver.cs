@@ -1,5 +1,6 @@
 namespace Clywell.Core.Security;
 
+/// <summary>Default <see cref="IUserContextResolver"/> that builds a <see cref="UserInfo"/> from the authenticated <see cref="ClaimsPrincipal"/> using the configured <see cref="UserClaimMapping"/>.</summary>
 public sealed class ClaimsUserContextResolver(UserClaimMapping mapping) : IUserContextResolver
 {
     public ClaimsUserContextResolver() : this(new UserClaimMapping()) { }
@@ -23,7 +24,16 @@ public sealed class ClaimsUserContextResolver(UserClaimMapping mapping) : IUserC
         var permissions = context.User.FindAll(mapping.Permissions)
             .Select(c => c.Value)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var acr = context.User.FindFirst(SecurityClaimTypes.Acr)?.Value;
+        var operationContext = context.User.FindFirst(SecurityClaimTypes.OperationContext)?.Value;
 
-        return Task.FromResult<UserInfo?>(new UserInfo(userId, email, displayName, roles, permissions));
+        return Task.FromResult<UserInfo?>(new UserInfo(
+            UserId: userId,
+            Email: email,
+            DisplayName: displayName,
+            Roles: roles,
+            Permissions: permissions,
+            Acr: acr,
+            OperationContext: operationContext));
     }
 }

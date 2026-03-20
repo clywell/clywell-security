@@ -84,6 +84,36 @@ public class SecurityRegistrationTests
     }
 
     [Fact]
+    public void AddSecurity_RegistersStepUpAuthorizationHandler()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity();
+        var provider = services.BuildServiceProvider();
+
+        var handlers = provider.GetServices<IAuthorizationHandler>().ToList();
+
+        Assert.Contains(handlers, h => h is StepUpAuthorizationHandler);
+    }
+
+    [Fact]
+    public void AddSecurity_RegistersIStepUpProofValidatorDescriptor()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity();
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IStepUpProofValidator));
+    }
+
+    [Fact]
+    public void AddSecurity_RegistersIHttpContextAccessor()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity();
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IHttpContextAccessor));
+    }
+
+    [Fact]
     public void AddSecurity_ReturnsSameServiceCollection()
     {
         var services = new ServiceCollection();

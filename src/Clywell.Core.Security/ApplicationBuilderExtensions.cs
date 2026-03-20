@@ -2,6 +2,10 @@ namespace Clywell.Core.Security;
 
 public static class ApplicationBuilderExtensions
 {
+    /// <summary>
+    /// Adds the <see cref="UserContextResolutionMiddleware"/> to the pipeline, resolving the current user from
+    /// the authenticated <see cref="ClaimsPrincipal"/> before each request. Must be placed after authentication middleware.
+    /// </summary>
     public static IApplicationBuilder UseUserContext(this IApplicationBuilder app)
         => app.UseMiddleware<UserContextResolutionMiddleware>();
 

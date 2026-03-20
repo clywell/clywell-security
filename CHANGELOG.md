@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-03-20
+
+### Added
+
+#### `Clywell.Core.Security`
+- `StepUpRequirement` — `IAuthorizationRequirement` that mandates the bearer token was issued via step-up authentication (`acr = "step-up"`); accepts an optional `RequiredOperationContext` string to further scope the requirement to a specific operation
+- `StepUpAuthorizationHandler` — `AuthorizationHandler<StepUpRequirement>` that delegates to `IStepUpProofValidator`; succeeds only when the `X-Step-Up-Proof` header carries a valid proof token with `acr=step-up` and, when required, a matching `operation_context`; registered automatically via `AddSecurity`
+- `EndpointConventionBuilderExtensions.RequireStepUp<TBuilder>(string? requiredOperationContext = null)` — minimal API / controller extension that builds an inline authorization policy requiring an authenticated user with a step-up token; optionally scopes the requirement to a named operation context
+- `ICurrentUser.Acr` — exposes the `acr` claim from the bearer token; value is `"step-up"` for tokens issued via step-up authentication
+- `ICurrentUser.OperationContext` — exposes the `operation_context` claim from step-up tokens
+- `SecurityClaimTypes.Acr` (`"acr"`) and `SecurityClaimTypes.OperationContext` (`"operation_context"`) — claim type constants for the new step-up claims
+- `SecurityHeaderNames` — static class of HTTP header name constants; currently defines `StepUpProof` (`"X-Step-Up-Proof"`) for use when setting the step-up proof header on requests
+- `AcrValues` — static class of well-known Authentication Context Class Reference constants: `Password` (`"pwd"`), `Mfa` (`"mfa"`), `StepUp` (`"step-up"`), `Social` (`"social"`), `ApiKey` (`"api_key"`)
+- `StepUpProofValidationResult` — enum describing the outcome of validating an `X-Step-Up-Proof` header token: `Valid`, `Missing`, `Invalid`, `ContextMismatch`, `Expired`
+- `IStepUpProofValidator` — interface for validating the `X-Step-Up-Proof` request header; use in command handlers for runtime/dynamic step-up requirements
+- `StepUpProofValidator` — default implementation; reads `X-Step-Up-Proof`, validates the JWT using the configured bearer `TokenValidationParameters`, checks `acr == "step-up"` and optionally `operation_context`
+
 ## [1.4.1] - 2026-03-16
 
 ### Added
@@ -112,7 +129,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 - `ServiceCollectionExtensions.AddSecurity()` — single entry point for all DI registrations
 - `ApplicationBuilderExtensions.UseUserContext()` / `UseSecurityHeaders()` — middleware pipeline extension methods
 
-[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/clywell/clywell-security/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/clywell/clywell-security/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/clywell/clywell-security/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/clywell/clywell-security/compare/v1.3.0...v1.3.1

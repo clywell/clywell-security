@@ -11,6 +11,8 @@ internal sealed class CurrentUser : ICurrentUser
     public string? UserId => _userInfo?.UserId;
     public string? Email => _userInfo?.Email;
     public string? DisplayName => _userInfo?.DisplayName;
+    public string? Acr => _userInfo?.Acr;
+    public string? OperationContext => _userInfo?.OperationContext;
     public bool IsAuthenticated => _userInfo is not null;
     public string? IpAddress { get; private set; }
     public IReadOnlySet<string> Roles => _userInfo?.Roles ?? EmptySet;
