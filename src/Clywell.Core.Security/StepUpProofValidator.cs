@@ -44,7 +44,7 @@ public sealed class StepUpProofValidator(
                 return StepUpProofValidationResult.Invalid;
 
             var acr = principal.FindFirst(SecurityClaimTypes.Acr)?.Value;
-            if (acr != AcrValues.StepUp)
+            if (acr != "step-up")
                 return StepUpProofValidationResult.Invalid;
 
             if (requiredOperationContext is not null)

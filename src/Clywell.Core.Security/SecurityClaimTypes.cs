@@ -20,7 +20,7 @@ public static class SecurityClaimTypes
 
     /// <summary>
     /// Authentication Context Class Reference claim (<c>acr</c>).
-    /// Describes the assurance level of the authentication event; see <see cref="AcrValues"/> for well-known values.
+    /// Describes the assurance level of the authentication event.
     /// </summary>
     public const string Acr = "acr";
 
