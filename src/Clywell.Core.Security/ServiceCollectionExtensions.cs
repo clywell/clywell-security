@@ -11,11 +11,28 @@ public static class ServiceCollectionExtensions
         configure?.Invoke(options);
         options.Apply(services);
 
-        services.AddAuthorizationCore();
-        services.TryAddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
-        services.TryAddEnumerable(ServiceDescriptor.Scoped<IAuthorizationHandler, PermissionAuthorizationHandler>());
-        services.TryAddEnumerable(ServiceDescriptor.Scoped<IAuthorizationHandler, StepUpAuthorizationHandler>());
-        services.TryAddScoped<IStepUpProofValidator, StepUpProofValidator>();
+        if (options.PermissionAuthorizationEnabled)
+        {
+            var permissionCodes = options.PermissionCodes;
+            var claimType = options.PermissionClaimType;
+
+            services.PostConfigure<AuthorizationOptions>(authOptions =>
+            {
+                foreach (var code in permissionCodes)
+                {
+                    authOptions.AddPolicy(
+                        HasPermissionAttribute.PolicyPrefix + code,
+                        policy => policy.RequireClaim(claimType, code));
+                }
+            });
+        }
+
+        if (options.StepUpAuthorizationEnabled)
+        {
+            services.AddAuthorizationCore();
+            services.TryAddEnumerable(ServiceDescriptor.Scoped<IAuthorizationHandler, StepUpAuthorizationHandler>());
+            services.TryAddScoped<IStepUpProofValidator, StepUpProofValidator>();
+        }
 
         services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 

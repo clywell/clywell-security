@@ -59,35 +59,38 @@ public class SecurityRegistrationTests
     }
 
     [Fact]
-    public void AddSecurity_RegistersPolicyProvider()
+    public void AddSecurity_WithPermissions_RegistersPermissionPolicies()
     {
         var services = new ServiceCollection();
+        string[] permissions = ["users.read", "users.write"];
 
-        services.AddSecurity();
+        services.AddSecurity(options => options.UsePermissionAuthorization(permissions));
+        services.AddAuthorization();
 
         var provider = services.BuildServiceProvider();
-        var policyProvider = provider.GetService<IAuthorizationPolicyProvider>();
-        Assert.NotNull(policyProvider);
+        var authOptions = provider.GetRequiredService<IOptions<AuthorizationOptions>>().Value;
+        Assert.NotNull(authOptions.GetPolicy("Permission:users.read"));
+        Assert.NotNull(authOptions.GetPolicy("Permission:users.write"));
     }
 
     [Fact]
-    public void AddSecurity_RegistersPermissionHandler()
+    public void AddSecurity_WithoutPermissions_DoesNotRegisterPermissionPolicies()
     {
         var services = new ServiceCollection();
 
         services.AddSecurity();
+        services.AddAuthorization();
 
         var provider = services.BuildServiceProvider();
-        using var scope = provider.CreateScope();
-        var handlers = scope.ServiceProvider.GetServices<IAuthorizationHandler>();
-        Assert.Contains(handlers, h => h is PermissionAuthorizationHandler);
+        var authOptions = provider.GetRequiredService<IOptions<AuthorizationOptions>>().Value;
+        Assert.Null(authOptions.GetPolicy("Permission:users.read"));
     }
 
     [Fact]
-    public void AddSecurity_RegistersStepUpAuthorizationHandler()
+    public void AddSecurity_WithStepUp_RegistersStepUpAuthorizationHandler()
     {
         var services = new ServiceCollection();
-        services.AddSecurity();
+        services.AddSecurity(options => options.UseStepUpAuthorization());
         var provider = services.BuildServiceProvider();
 
         var handlers = provider.GetServices<IAuthorizationHandler>().ToList();
@@ -96,12 +99,33 @@ public class SecurityRegistrationTests
     }
 
     [Fact]
-    public void AddSecurity_RegistersIStepUpProofValidatorDescriptor()
+    public void AddSecurity_WithoutStepUp_DoesNotRegisterStepUpHandler()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity();
+        var provider = services.BuildServiceProvider();
+
+        var handlers = provider.GetServices<IAuthorizationHandler>().ToList();
+
+        Assert.DoesNotContain(handlers, h => h is StepUpAuthorizationHandler);
+    }
+
+    [Fact]
+    public void AddSecurity_WithStepUp_RegistersIStepUpProofValidatorDescriptor()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity(options => options.UseStepUpAuthorization());
+
+        Assert.Contains(services, d => d.ServiceType == typeof(IStepUpProofValidator));
+    }
+
+    [Fact]
+    public void AddSecurity_WithoutStepUp_DoesNotRegisterIStepUpProofValidator()
     {
         var services = new ServiceCollection();
         services.AddSecurity();
 
-        Assert.Contains(services, d => d.ServiceType == typeof(IStepUpProofValidator));
+        Assert.DoesNotContain(services, d => d.ServiceType == typeof(IStepUpProofValidator));
     }
 
     [Fact]

@@ -4,7 +4,8 @@ public static class EndpointConventionBuilderExtensions
 {
     /// <summary>
     /// Requires the caller to hold the specified permission code.
-    /// Applies the <c>Permission:&lt;permissionCode&gt;</c> authorization policy resolved dynamically by <see cref="PermissionPolicyProvider"/>.
+    /// Applies the <c>Permission:&lt;permissionCode&gt;</c> authorization policy registered by
+    /// <see cref="SecurityOptions.UsePermissionAuthorization"/>.
     /// </summary>
     /// <param name="builder">The endpoint convention builder.</param>
     /// <param name="permissionCode">The permission code to require (e.g. <c>"articles.edit"</c>).</param>

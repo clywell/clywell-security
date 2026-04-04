@@ -8,6 +8,8 @@ public sealed class SecurityOptions
     private Action<IServiceCollection>? _customAuthSetup;
     private JwtBearerBuilder? _jwtBuilder;
     private readonly UserClaimMapping _claimMapping = new();
+    private IReadOnlyCollection<string>? _permissionCodes;
+    private bool _useStepUpAuthorization;
 
     public SecurityOptions UseResolver<TResolver>() where TResolver : class, IUserContextResolver
     {
@@ -41,6 +43,36 @@ public sealed class SecurityOptions
 
         _jwtBuilder = new JwtBearerBuilder();
         return _jwtBuilder;
+    }
+
+    /// <summary>
+    /// Enables permission-based authorization by registering a <c>Permission:&lt;code&gt;</c> policy
+    /// for each supplied permission code. Each policy requires a claim of the configured permission
+    /// claim type (see <see cref="ConfigureClaimMapping"/>) whose value matches the permission code.
+    /// Use with <see cref="EndpointConventionBuilderExtensions.RequirePermission{TBuilder}"/> or
+    /// <see cref="HasPermissionAttribute"/> on endpoints/controllers.
+    /// </summary>
+    /// <param name="permissionCodes">The permission codes to register as authorization policies.</param>
+    public SecurityOptions UsePermissionAuthorization(IEnumerable<string> permissionCodes)
+    {
+        ArgumentNullException.ThrowIfNull(permissionCodes);
+        _permissionCodes = permissionCodes as IReadOnlyCollection<string> ?? permissionCodes.ToArray();
+
+        if (_permissionCodes.Count == 0)
+            throw new ArgumentException("At least one permission code must be provided.", nameof(permissionCodes));
+
+        return this;
+    }
+
+    /// <summary>
+    /// Enables step-up authentication authorization. Registers <see cref="StepUpAuthorizationHandler"/>
+    /// and <see cref="IStepUpProofValidator"/>. Use with
+    /// <see cref="EndpointConventionBuilderExtensions.RequireStepUp{TBuilder}"/> on endpoints.
+    /// </summary>
+    public SecurityOptions UseStepUpAuthorization()
+    {
+        _useStepUpAuthorization = true;
+        return this;
     }
 
     /// <summary>
@@ -88,4 +120,9 @@ public sealed class SecurityOptions
         else
             _jwtBuilder?.Apply(services, _claimMapping);
     }
+
+    internal bool PermissionAuthorizationEnabled => _permissionCodes is not null;
+    internal IReadOnlyCollection<string> PermissionCodes => _permissionCodes ?? Array.Empty<string>();
+    internal string PermissionClaimType => _claimMapping.Permissions;
+    internal bool StepUpAuthorizationEnabled => _useStepUpAuthorization;
 }

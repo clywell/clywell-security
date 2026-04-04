@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-04-03
+
+### Removed
+
+#### `Clywell.Core.Security`
+- `PermissionPolicyProvider` — dynamic `IAuthorizationPolicyProvider` removed; permission policies are now registered statically via `UsePermissionAuthorization(IEnumerable<string>)`
+- `PermissionRequirement` — no longer needed; policies use `RequireClaim` directly
+- `PermissionAuthorizationHandler` — no longer needed; policies use `RequireClaim` directly
+
+### Changed
+
+#### `Clywell.Core.Security`
+- `SecurityOptions.UsePermissionAuthorization(IEnumerable<string> permissionCodes)` — now requires the consumer to supply permission codes explicitly; each code is registered as a `Permission:<code>` policy that checks the configured permission claim type via `RequireClaim`
+- `SecurityOptions.UseStepUpAuthorization()` — step-up authorization handler and validator are now opt-in (previously registered by default)
+- `AddSecurity()` no longer calls `AddAuthorizationCore()` or replaces `IAuthorizationPolicyProvider` when permission authorization is enabled — uses `PostConfigure<AuthorizationOptions>` instead, avoiding registration conflicts
+
 ## [1.5.1] - 2026-03-20
 
 ### Removed
