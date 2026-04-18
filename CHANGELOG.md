@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-04-18
+
+### Changed
+
+#### `Clywell.Core.Security`
+- Bumped `Microsoft.AspNetCore.Authentication.JwtBearer` from `10.0.5` to `10.0.6`
+- Bumped `Microsoft.SourceLink.GitHub` from `10.0.201` to `10.0.202`
+
+#### `Clywell.Core.Security.Tests`
+- Bumped `Microsoft.AspNetCore.TestHost` from `10.0.5` to `10.0.6`
+- Bumped `Microsoft.NET.Test.Sdk` from `18.3.0` to `18.4.0`
+- Bumped `coverlet.collector` from `8.0.0` to `10.0.0`
+
 ## [2.0.0] - 2026-04-03
 
 ### Removed
