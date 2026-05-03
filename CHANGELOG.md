@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-05-03
+
+### Added
+
+#### `Clywell.Core.Security`
+- `ITokenSessionValidator` — new interface for DI-driven post-JWT session validation; implement and register via `SecurityOptions.UseSessionValidation<TValidator>()` to enable per-request session checks after the standard JWT bearer validation succeeds
+- `SecurityOptions.UseSessionValidation<TValidator>()` — enables post-JWT-validation session checks using a scoped `ITokenSessionValidator` implementation registered by generic type; tokens without a `sid` claim (e.g. `client_credentials`) bypass the hook automatically
+- `SecurityOptions.UseSessionValidation(Func<IServiceProvider, ITokenSessionValidator>)` — factory overload of `UseSessionValidation` for when the validator requires custom scoping or cannot be expressed as a plain generic registration
+- `SecurityClaimTypes.Sid` (`"sid"`) — session identifier claim constant; standard JWT `sid` value that identifies the authentication session
+
+### Fixed
+
+#### `Clywell.Core.Security`
+- `JwtBearerBuilder` event composition: `OnMessageReceived` and `OnTokenValidated` are now mutated in-place on the existing `JwtBearerEvents` instance instead of replacing it; prior event handlers set by other configuration code are preserved and called correctly in sequence
+- Token-validation edge case: a validated JWT carrying a `sid` claim whose value is an empty string is now rejected immediately (result: `Fail`) rather than being forwarded to `ITokenSessionValidator`, preventing an ambiguous empty-session-ID lookup
+
 ## [2.0.1] - 2026-04-18
 
 ### Changed
@@ -164,7 +180,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/). Thi
 - `ServiceCollectionExtensions.AddSecurity()` — single entry point for all DI registrations
 - `ApplicationBuilderExtensions.UseUserContext()` / `UseSecurityHeaders()` — middleware pipeline extension methods
 
-[Unreleased]: https://github.com/clywell/clywell-security/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/clywell/clywell-security/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/clywell/clywell-security/compare/v2.0.1...v2.1.0
+[2.0.1]: https://github.com/clywell/clywell-security/compare/v2.0.0...v2.0.1
+[2.0.0]: https://github.com/clywell/clywell-security/compare/v1.5.1...v2.0.0
 [1.5.1]: https://github.com/clywell/clywell-security/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/clywell/clywell-security/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/clywell/clywell-security/compare/v1.4.0...v1.4.1

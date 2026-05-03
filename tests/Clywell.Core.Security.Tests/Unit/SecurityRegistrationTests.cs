@@ -245,6 +245,82 @@ public class SecurityRegistrationTests
         Assert.Equal("api", jwtOptions.Audience);
     }
 
+
+    // ── Session validation registration ──────────────────────────────────────
+
+    [Fact]
+    public void AddSecurity_WithSessionValidation_RegistersITokenSessionValidator()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddSecurity(options =>
+        {
+            options.AddJwtBearer().WithOidcProvider("https://auth.example.com");
+            options.UseSessionValidation<StubSessionValidator>();
+        });
+
+        Assert.Contains(services, d => d.ServiceType == typeof(ITokenSessionValidator));
+    }
+
+    [Fact]
+    public void AddSecurity_WithoutSessionValidation_DoesNotRegisterITokenSessionValidator()
+    {
+        var services = new ServiceCollection();
+        services.AddSecurity();
+
+        Assert.DoesNotContain(services, d => d.ServiceType == typeof(ITokenSessionValidator));
+    }
+
+    [Fact]
+    public void AddSecurity_SessionValidationWithFactory_RegistersValidator()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        var expected = new StubSessionValidator();
+        services.AddSecurity(options =>
+        {
+            options.AddJwtBearer().WithOidcProvider("https://auth.example.com");
+            options.UseSessionValidation(_ => expected);
+        });
+
+        var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+        var validator = scope.ServiceProvider.GetService<ITokenSessionValidator>();
+        Assert.Same(expected, validator);
+    }
+
+    [Fact]
+    public void AddSecurity_SessionValidationWithCustomHandler_Throws()
+    {
+        var services = new ServiceCollection();
+        var ex = Assert.Throws<InvalidOperationException>(() =>
+            services.AddSecurity(options =>
+            {
+                options.UseAuthenticationHandler<StubAuthHandler, StubAuthHandlerOptions>("custom");
+                options.UseSessionValidation<StubSessionValidator>();
+            }));
+
+        Assert.Contains("UseSessionValidation", ex.Message);
+    }
+
+    private sealed class StubSessionValidator : ITokenSessionValidator
+    {
+        public Task<bool> ValidateAsync(string sessionId, HttpContext context, CancellationToken cancellationToken = default)
+            => Task.FromResult(true);
+    }
+
+    private sealed class StubAuthHandlerOptions : AuthenticationSchemeOptions { }
+
+    private sealed class StubAuthHandler(
+        IOptionsMonitor<StubAuthHandlerOptions> options,
+        ILoggerFactory logger,
+        System.Text.Encodings.Web.UrlEncoder encoder)
+        : AuthenticationHandler<StubAuthHandlerOptions>(options, logger, encoder)
+    {
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+            => Task.FromResult(AuthenticateResult.NoResult());
+    }
+
     private sealed class StubUserContextResolver : IUserContextResolver
     {
         public Task<UserInfo?> ResolveAsync(HttpContext context) => Task.FromResult<UserInfo?>(null);

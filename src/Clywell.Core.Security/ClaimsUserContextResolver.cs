@@ -26,7 +26,6 @@ public sealed class ClaimsUserContextResolver(UserClaimMapping mapping) : IUserC
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
         var acr = context.User.FindFirst(SecurityClaimTypes.Acr)?.Value;
         var operationContext = context.User.FindFirst(SecurityClaimTypes.OperationContext)?.Value;
-
         return Task.FromResult<UserInfo?>(new UserInfo(
             UserId: userId,
             Email: email,

@@ -29,4 +29,7 @@ public static class SecurityClaimTypes
     /// Present in step-up proof tokens to scope them to a specific sensitive operation.
     /// </summary>
     public const string OperationContext = "operation_context";
+
+    /// <summary>Session identifier claim (<c>sid</c>). Identifies the authentication session.</summary>
+    public const string Sid = "sid";
 }
