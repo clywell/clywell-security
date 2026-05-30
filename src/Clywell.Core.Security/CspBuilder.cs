@@ -48,5 +48,7 @@ public sealed class CspBuilder
 
     /// <summary>Builds the CSP header value string.</summary>
     public string Build()
-        => string.Join("; ", _directives.Select(d => $"{d.Key} {string.Join(" ", d.Value)}"));
+        => string.Join("; ", _directives
+            .Where(d => d.Value.Length > 0)
+            .Select(d => $"{d.Key} {string.Join(" ", d.Value)}"));
 }
